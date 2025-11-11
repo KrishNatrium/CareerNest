@@ -8,7 +8,7 @@ export interface CacheOptions {
 export class CacheService {
   private static instance: CacheService
   private defaultTTL = 3600 // 1 hour default
-  private keyPrefix = 'internship_aggregator:'
+  private keyPrefix = 'careernest:'
 
   private constructor() {}
 

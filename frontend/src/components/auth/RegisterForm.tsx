@@ -24,6 +24,7 @@ import {
 } from '@mui/icons-material'
 import { useAuth } from '../../contexts/AuthContext'
 import { RegisterData } from '../../types/auth.types'
+// Logo is served from public folder
 
 interface RegisterFormProps {
   onSwitchToLogin: () => void
@@ -154,8 +155,28 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) =
   return (
     <Card sx={{ maxWidth: 500, mx: 'auto', mt: 4 }}>
       <CardContent sx={{ p: 4 }}>
-        <Typography variant="h4" component="h1" gutterBottom align="center">
-          Sign Up
+        <Box sx={{ display: 'flex', justifyContent: 'center', mb: 3 }}>
+          <img 
+            src="/logo.png" 
+            alt="CareerNest Logo" 
+            style={{ 
+              height: '160px', 
+              width: 'auto'
+            }} 
+          />
+        </Box>
+        
+        <Typography 
+          variant="h4" 
+          component="h1" 
+          gutterBottom 
+          align="center"
+          sx={{
+            fontFamily: '"Poppins", "Roboto", "Helvetica", "Arial", sans-serif',
+            fontWeight: 700
+          }}
+        >
+          Join <span style={{ color: '#1976d2' }}>Career</span><span style={{ color: '#ffd700', fontWeight: 800 }}>Nest</span>
         </Typography>
         
         <Typography variant="body2" color="text.secondary" align="center" sx={{ mb: 3 }}>

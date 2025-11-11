@@ -1,7 +1,7 @@
 {
-  "name": "internship-aggregator-backend",
+  "name": "careernest-backend",
   "version": "1.0.0",
-  "description": "Backend API for Internship Aggregator",
+  "description": "Backend API for CareerNest",
   "main": "dist/index.js",
   "scripts": {
     "dev": "nodemon src/index.ts",
@@ -13,7 +13,8 @@
     "migrate:up": "ts-node src/scripts/migrate.ts up",
     "migrate:down": "ts-node src/scripts/migrate.ts down",
     "migrate:status": "ts-node src/scripts/migrate.ts status",
-    "migrate:create": "ts-node src/scripts/migrate.ts create"
+    "migrate:create": "ts-node src/scripts/migrate.ts create",
+    "seed:internships": "ts-node src/scripts/seed-internships.ts"
   },
   "dependencies": {
     "express": "^4.18.2",

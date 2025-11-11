@@ -91,20 +91,36 @@ export type ApplicationStatus =
 export interface UserApplication {
   id: number
   user_id: number
-  internship_id: number
+  internship_id?: number | null
   application_status: ApplicationStatus
   applied_date: string
   last_updated: string
   notes?: string
   reminder_date?: string
+  // Manual entry fields
+  is_manual_entry: boolean
+  manual_company_name?: string
+  manual_position_title?: string
+  manual_location?: string
+  manual_application_url?: string
+  manual_deadline?: string
 }
 
 export interface UserApplicationWithInternship extends UserApplication {
-  internship: Internship
+  internship?: Internship
 }
 
 export interface UserApplicationCreateInput {
-  internship_id: number
+  // For platform internships
+  internship_id?: number
+  // For manual entries
+  is_manual_entry?: boolean
+  manual_company_name?: string
+  manual_position_title?: string
+  manual_location?: string
+  manual_application_url?: string
+  manual_deadline?: string
+  // Common fields
   application_status?: ApplicationStatus
   notes?: string
   reminder_date?: string
@@ -114,6 +130,11 @@ export interface UserApplicationUpdateInput {
   application_status?: ApplicationStatus
   notes?: string
   reminder_date?: string
+  manual_company_name?: string
+  manual_position_title?: string
+  manual_location?: string
+  manual_application_url?: string
+  manual_deadline?: string
 }
 
 export interface ApplicationStats {

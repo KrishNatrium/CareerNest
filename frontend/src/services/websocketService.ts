@@ -219,21 +219,12 @@ class WebSocketService {
    * Handle new internship
    */
   private handleNewInternship(data: any): void {
-    const { internship } = data
+    // Silently log new internships without showing toast notifications
+    // Users can see new internships in the main feed
+    console.log('🆕 New internship available:', data)
     
-    toast.success(
-      `New internship: ${internship.title} at ${internship.company_name}`,
-      {
-        position: 'top-right',
-        autoClose: 7000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true
-      }
-    )
-
-    this.playNotificationSound()
+    // Don't show toast or play sound for every new internship
+    // This prevents notification spam when reconnecting or when many internships are added
   }
 
   /**

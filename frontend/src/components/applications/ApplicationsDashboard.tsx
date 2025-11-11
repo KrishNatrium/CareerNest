@@ -18,14 +18,15 @@ import {
   Chip
 } from '@mui/material'
 import {
-
-  Refresh as RefreshIcon
+  Refresh as RefreshIcon,
+  Add as AddIcon
 } from '@mui/icons-material'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'react-toastify'
 
 import { ApplicationCard } from './ApplicationCard'
 import { ApplicationStats } from './ApplicationStats'
+import { AddApplicationForm, ManualApplicationData } from './AddApplicationForm'
 import { applicationService } from '../../services/applicationService'
 import {
   ApplicationStatus
@@ -50,6 +51,7 @@ export const ApplicationsDashboard: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<ApplicationStatus | ''>('')
   const [searchQuery, setSearchQuery] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
+  const [addFormOpen, setAddFormOpen] = useState(false)
   const pageSize = 10
 
   const queryClient = useQueryClient()
@@ -125,6 +127,20 @@ export const ApplicationsDashboard: React.FC = () => {
     }
   })
 
+  // Create manual application mutation
+  const createMutation = useMutation({
+    mutationFn: applicationService.createApplication,
+    onSuccess: () => {
+      toast.success('Application added successfully')
+      queryClient.invalidateQueries({ queryKey: ['applications'] })
+      queryClient.invalidateQueries({ queryKey: ['application-stats'] })
+      queryClient.invalidateQueries({ queryKey: ['application-insights'] })
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.error?.message || 'Failed to add application')
+    }
+  })
+
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setActiveTab(newValue)
     setCurrentPage(1)
@@ -148,6 +164,10 @@ export const ApplicationsDashboard: React.FC = () => {
     queryClient.invalidateQueries({ queryKey: ['application-stats'] })
     queryClient.invalidateQueries({ queryKey: ['application-insights'] })
     queryClient.invalidateQueries({ queryKey: ['upcoming-reminders'] })
+  }
+
+  const handleAddApplication = (data: ManualApplicationData) => {
+    createMutation.mutate(data)
   }
 
   const filteredApplications = applicationsData?.applications.filter(app => {
@@ -178,15 +198,32 @@ export const ApplicationsDashboard: React.FC = () => {
         <Typography variant="h4" component="h1">
           Application Tracker
         </Typography>
-        <Button
-          variant="outlined"
-          startIcon={<RefreshIcon />}
-          onClick={handleRefresh}
-          disabled={applicationsLoading}
-        >
-          Refresh
-        </Button>
+        <Box display="flex" gap={2}>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={() => setAddFormOpen(true)}
+            color="primary"
+          >
+            Add Application
+          </Button>
+          <Button
+            variant="outlined"
+            startIcon={<RefreshIcon />}
+            onClick={handleRefresh}
+            disabled={applicationsLoading}
+          >
+            Refresh
+          </Button>
+        </Box>
       </Box>
+
+      {/* Add Application Form Dialog */}
+      <AddApplicationForm
+        open={addFormOpen}
+        onClose={() => setAddFormOpen(false)}
+        onSubmit={handleAddApplication}
+      />
 
       {/* Statistics */}
       {stats && (

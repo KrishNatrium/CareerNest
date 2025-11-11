@@ -21,7 +21,7 @@ const config: PoolConfig = {
   query_timeout: parseInt(process.env.DB_QUERY_TIMEOUT || '30000'), // 30 seconds
   
   // Performance settings
-  application_name: 'internship_aggregator',
+  application_name: 'careernest',
   keepAlive: true,
   keepAliveInitialDelayMillis: 10000, // 10 seconds
 }

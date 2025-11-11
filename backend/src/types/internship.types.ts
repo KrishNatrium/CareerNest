@@ -89,16 +89,32 @@ export type ApplicationStatus =
 export interface UserApplication {
   id: number
   user_id: number
-  internship_id: number
+  internship_id?: number | null
   application_status: ApplicationStatus
   applied_date: Date
   last_updated: Date
   notes?: string
   reminder_date?: Date
+  // Manual entry fields
+  is_manual_entry: boolean
+  manual_company_name?: string
+  manual_position_title?: string
+  manual_location?: string
+  manual_application_url?: string
+  manual_deadline?: Date
 }
 
 export interface UserApplicationCreateInput {
-  internship_id: number
+  // For platform internships
+  internship_id?: number
+  // For manual entries
+  is_manual_entry?: boolean
+  manual_company_name?: string
+  manual_position_title?: string
+  manual_location?: string
+  manual_application_url?: string
+  manual_deadline?: Date
+  // Common fields
   application_status?: ApplicationStatus
   notes?: string
   reminder_date?: Date
@@ -108,10 +124,32 @@ export interface UserApplicationUpdateInput {
   application_status?: ApplicationStatus
   notes?: string
   reminder_date?: Date
+  manual_company_name?: string
+  manual_position_title?: string
+  manual_location?: string
+  manual_application_url?: string
+  manual_deadline?: Date
 }
 
 export interface UserApplicationWithInternship extends UserApplication {
-  internship: Internship
+  internship?: Internship
+}
+
+export interface ApplicationsResponse {
+  applications: UserApplicationWithInternship[]
+  pagination: {
+    total: number
+    limit: number
+    offset: number
+    has_more: boolean
+  }
+}
+
+export interface ApplicationInsights {
+  success_rate: number
+  average_response_time: number
+  most_responsive_companies: string[]
+  recommendations: string[]
 }
 
 export type JobType = 'full_scrape' | 'incremental' | 'webhook' | 'monitoring'

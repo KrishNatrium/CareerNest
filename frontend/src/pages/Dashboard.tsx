@@ -186,8 +186,20 @@ export const Dashboard: React.FC = () => {
           <Grid item xs={12}>
             <Card>
               <CardContent>
-                <Typography variant="h6" gutterBottom>
-                  Welcome to Internship Aggregator!
+                <Typography 
+                  variant="h4" 
+                  gutterBottom
+                  sx={{
+                    fontFamily: '"Poppins", "Roboto", "Helvetica", "Arial", sans-serif',
+                    fontWeight: 700,
+                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    backgroundClip: 'text',
+                    mb: 2
+                  }}
+                >
+                  Welcome to Career<span style={{ fontWeight: 800 }}>Nest</span>! 🚀
                 </Typography>
                 <Typography variant="body1" paragraph>
                   Your account has been successfully created. Here's what you can do next:

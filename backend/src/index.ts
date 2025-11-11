@@ -57,7 +57,7 @@ app.get('/health', async (_req, res) => {
 // API routes
 app.get('/api', (_req, res) => {
   res.json({
-    message: 'Internship Aggregator API',
+    message: 'CareerNest API',
     version: '1.0.0',
     status: 'running'
   })

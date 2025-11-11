@@ -54,7 +54,24 @@ export const ApplicationCard: React.FC<ApplicationCardProps> = ({
     reminder_date: application.reminder_date ? application.reminder_date.split('T')[0] : ''
   })
 
-  const { internship } = application
+  const { internship, is_manual_entry } = application
+
+  // Get display data (either from internship or manual fields)
+  const displayData = is_manual_entry ? {
+    title: application.manual_position_title || 'Untitled Position',
+    company_name: application.manual_company_name || 'Unknown Company',
+    location: application.manual_location,
+    application_url: application.manual_application_url,
+    deadline: application.manual_deadline
+  } : {
+    title: internship?.title || 'Untitled Position',
+    company_name: internship?.company_name || 'Unknown Company',
+    location: internship?.location,
+    application_url: internship?.application_url,
+    stipend: internship?.stipend,
+    duration_months: internship?.duration_months,
+    deadline: internship?.application_deadline
+  }
 
   const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget)
@@ -112,13 +129,18 @@ export const ApplicationCard: React.FC<ApplicationCardProps> = ({
         <CardContent>
           <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={2}>
             <Box flex={1}>
-              <Typography variant="h6" component="h3" gutterBottom>
-                {internship.title}
-              </Typography>
+              <Box display="flex" alignItems="center" gap={1} mb={1}>
+                <Typography variant="h6" component="h3">
+                  {displayData.title}
+                </Typography>
+                {is_manual_entry && (
+                  <Chip label="Manual" size="small" variant="outlined" color="info" />
+                )}
+              </Box>
               <Box display="flex" alignItems="center" gap={1} mb={1}>
                 <BusinessIcon fontSize="small" color="action" />
                 <Typography variant="body2" color="text.secondary">
-                  {internship.company_name}
+                  {displayData.company_name}
                 </Typography>
               </Box>
             </Box>
@@ -136,29 +158,38 @@ export const ApplicationCard: React.FC<ApplicationCardProps> = ({
           </Box>
 
           <Box display="flex" flexWrap="wrap" gap={2} mb={2}>
-            {internship.location && (
+            {displayData.location && (
               <Box display="flex" alignItems="center" gap={0.5}>
                 <LocationIcon fontSize="small" color="action" />
                 <Typography variant="body2" color="text.secondary">
-                  {internship.location}
+                  {displayData.location}
                 </Typography>
               </Box>
             )}
             
-            {internship.stipend && (
+            {!is_manual_entry && displayData.stipend && (
               <Box display="flex" alignItems="center" gap={0.5}>
                 <MoneyIcon fontSize="small" color="action" />
                 <Typography variant="body2" color="text.secondary">
-                  {formatCurrency(internship.stipend)}
+                  {formatCurrency(displayData.stipend)}
                 </Typography>
               </Box>
             )}
             
-            {internship.duration_months && (
+            {!is_manual_entry && displayData.duration_months && (
               <Box display="flex" alignItems="center" gap={0.5}>
                 <TimeIcon fontSize="small" color="action" />
                 <Typography variant="body2" color="text.secondary">
-                  {internship.duration_months} months
+                  {displayData.duration_months} months
+                </Typography>
+              </Box>
+            )}
+
+            {displayData.deadline && (
+              <Box display="flex" alignItems="center" gap={0.5}>
+                <ScheduleIcon fontSize="small" color="action" />
+                <Typography variant="body2" color="text.secondary">
+                  Deadline: {formatDate(displayData.deadline)}
                 </Typography>
               </Box>
             )}
@@ -194,11 +225,11 @@ export const ApplicationCard: React.FC<ApplicationCardProps> = ({
         </CardContent>
 
         <CardActions>
-          {internship.application_url && (
+          {displayData.application_url && (
             <Button
               size="small"
               startIcon={<OpenInNewIcon />}
-              onClick={() => window.open(internship.application_url, '_blank')}
+              onClick={() => window.open(displayData.application_url, '_blank')}
             >
               View Original
             </Button>
@@ -275,7 +306,7 @@ export const ApplicationCard: React.FC<ApplicationCardProps> = ({
         <DialogTitle>Delete Application</DialogTitle>
         <DialogContent>
           <Typography>
-            Are you sure you want to delete your application to {internship.title} at {internship.company_name}?
+            Are you sure you want to delete your application to {displayData.title} at {displayData.company_name}?
             This action cannot be undone.
           </Typography>
         </DialogContent>

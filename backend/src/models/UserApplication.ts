@@ -10,33 +10,69 @@ import {
 
 export class UserApplicationModel {
   /**
-   * Create a new application
+   * Create a new application (supports both platform and manual entries)
    */
   static async create(userId: number, applicationData: UserApplicationCreateInput): Promise<UserApplication> {
     const client = await pool.connect()
     try {
-      const query = `
-        INSERT INTO user_applications (user_id, internship_id, application_status, notes, reminder_date)
-        VALUES ($1, $2, $3, $4, $5)
-        ON CONFLICT (user_id, internship_id)
-        DO UPDATE SET
-          application_status = EXCLUDED.application_status,
-          notes = EXCLUDED.notes,
-          reminder_date = EXCLUDED.reminder_date,
-          last_updated = CURRENT_TIMESTAMP
-        RETURNING *
-      `
+      const isManual = applicationData.is_manual_entry || false
       
-      const values = [
-        userId,
-        applicationData.internship_id,
-        applicationData.application_status || 'applied',
-        applicationData.notes || null,
-        applicationData.reminder_date || null
-      ]
+      if (isManual) {
+        // Manual entry - insert without internship_id
+        const query = `
+          INSERT INTO user_applications (
+            user_id, application_status, notes, reminder_date,
+            is_manual_entry, manual_company_name, manual_position_title,
+            manual_location, manual_application_url, manual_deadline
+          )
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+          RETURNING *
+        `
+        
+        const values = [
+          userId,
+          applicationData.application_status || 'applied',
+          applicationData.notes || null,
+          applicationData.reminder_date || null,
+          true,
+          applicationData.manual_company_name,
+          applicationData.manual_position_title,
+          applicationData.manual_location || null,
+          applicationData.manual_application_url || null,
+          applicationData.manual_deadline || null
+        ]
 
-      const result = await client.query(query, values)
-      return result.rows[0]
+        const result = await client.query(query, values)
+        return result.rows[0]
+      } else {
+        // Platform internship - use internship_id
+        const query = `
+          INSERT INTO user_applications (
+            user_id, internship_id, application_status, notes, reminder_date, is_manual_entry
+          )
+          VALUES ($1, $2, $3, $4, $5, $6)
+          ON CONFLICT (user_id, internship_id)
+          WHERE internship_id IS NOT NULL
+          DO UPDATE SET
+            application_status = EXCLUDED.application_status,
+            notes = EXCLUDED.notes,
+            reminder_date = EXCLUDED.reminder_date,
+            last_updated = CURRENT_TIMESTAMP
+          RETURNING *
+        `
+        
+        const values = [
+          userId,
+          applicationData.internship_id,
+          applicationData.application_status || 'applied',
+          applicationData.notes || null,
+          applicationData.reminder_date || null,
+          false
+        ]
+
+        const result = await client.query(query, values)
+        return result.rows[0]
+      }
     } finally {
       client.release()
     }
@@ -71,7 +107,7 @@ export class UserApplicationModel {
   }
 
   /**
-   * Get user applications with internship details
+   * Get user applications with internship details (including manual entries)
    */
   static async findByUserIdWithInternships(
     userId: number, 
@@ -91,17 +127,16 @@ export class UserApplicationModel {
         paramCount++
       }
 
-      // Get total count
+      // Get total count (including manual entries)
       const countQuery = `
         SELECT COUNT(*) 
         FROM user_applications ua
-        JOIN internships i ON ua.internship_id = i.id
         WHERE ${conditions.join(' AND ')}
       `
       const countResult = await client.query(countQuery, values)
       const totalCount = parseInt(countResult.rows[0].count)
 
-      // Get applications with internship details
+      // Get applications with internship details (LEFT JOIN to include manual entries)
       values.push(limit, offset)
       const query = `
         SELECT 
@@ -111,7 +146,7 @@ export class UserApplicationModel {
           i.source_website, i.external_id, i.posted_date, i.application_deadline,
           i.is_active, i.created_at as internship_created_at, i.updated_at as internship_updated_at
         FROM user_applications ua
-        JOIN internships i ON ua.internship_id = i.id
+        LEFT JOIN internships i ON ua.internship_id = i.id
         WHERE ${conditions.join(' AND ')}
         ORDER BY ua.applied_date DESC
         LIMIT $${paramCount} OFFSET $${paramCount + 1}
@@ -119,35 +154,49 @@ export class UserApplicationModel {
 
       const result = await client.query(query, values)
       
-      const applications = result.rows.map(row => ({
-        id: row.id,
-        user_id: row.user_id,
-        internship_id: row.internship_id,
-        application_status: row.application_status,
-        applied_date: row.applied_date,
-        last_updated: row.last_updated,
-        notes: row.notes,
-        reminder_date: row.reminder_date,
-        internship: {
-          id: row.internship_id,
-          title: row.title,
-          company_name: row.company_name,
-          description: row.description,
-          location: row.location,
-          stipend: row.stipend,
-          duration_months: row.duration_months,
-          work_type: row.work_type,
-          required_skills: row.required_skills,
-          application_url: row.application_url,
-          source_website: row.source_website,
-          external_id: row.external_id,
-          posted_date: row.posted_date,
-          application_deadline: row.application_deadline,
-          is_active: row.is_active,
-          created_at: row.internship_created_at,
-          updated_at: row.internship_updated_at
+      const applications = result.rows.map(row => {
+        const app: UserApplicationWithInternship = {
+          id: row.id,
+          user_id: row.user_id,
+          internship_id: row.internship_id,
+          application_status: row.application_status,
+          applied_date: row.applied_date,
+          last_updated: row.last_updated,
+          notes: row.notes,
+          reminder_date: row.reminder_date,
+          is_manual_entry: row.is_manual_entry,
+          manual_company_name: row.manual_company_name,
+          manual_position_title: row.manual_position_title,
+          manual_location: row.manual_location,
+          manual_application_url: row.manual_application_url,
+          manual_deadline: row.manual_deadline
         }
-      }))
+
+        // Add internship data if it's not a manual entry
+        if (!row.is_manual_entry && row.internship_id) {
+          app.internship = {
+            id: row.internship_id,
+            title: row.title,
+            company_name: row.company_name,
+            description: row.description,
+            location: row.location,
+            stipend: row.stipend,
+            duration_months: row.duration_months,
+            work_type: row.work_type,
+            required_skills: row.required_skills,
+            application_url: row.application_url,
+            source_website: row.source_website,
+            external_id: row.external_id,
+            posted_date: row.posted_date,
+            application_deadline: row.application_deadline,
+            is_active: row.is_active,
+            created_at: row.internship_created_at,
+            updated_at: row.internship_updated_at
+          }
+        }
+
+        return app
+      })
 
       return { applications, total_count: totalCount }
     } finally {
@@ -177,6 +226,7 @@ export class UserApplicationModel {
         return await this.findById(id)
       }
 
+      fields.push('last_updated = CURRENT_TIMESTAMP')
       values.push(id)
       const query = `
         UPDATE user_applications
@@ -220,7 +270,7 @@ export class UserApplicationModel {
           i.source_website, i.external_id, i.posted_date, i.application_deadline,
           i.is_active, i.created_at as internship_created_at, i.updated_at as internship_updated_at
         FROM user_applications ua
-        JOIN internships i ON ua.internship_id = i.id
+        LEFT JOIN internships i ON ua.internship_id = i.id
         WHERE ua.reminder_date IS NOT NULL
         AND ua.reminder_date BETWEEN NOW() AND NOW() + INTERVAL '${days} days'
         ORDER BY ua.reminder_date ASC
@@ -228,35 +278,48 @@ export class UserApplicationModel {
 
       const result = await client.query(query)
       
-      return result.rows.map(row => ({
-        id: row.id,
-        user_id: row.user_id,
-        internship_id: row.internship_id,
-        application_status: row.application_status,
-        applied_date: row.applied_date,
-        last_updated: row.last_updated,
-        notes: row.notes,
-        reminder_date: row.reminder_date,
-        internship: {
-          id: row.internship_id,
-          title: row.title,
-          company_name: row.company_name,
-          description: row.description,
-          location: row.location,
-          stipend: row.stipend,
-          duration_months: row.duration_months,
-          work_type: row.work_type,
-          required_skills: row.required_skills,
-          application_url: row.application_url,
-          source_website: row.source_website,
-          external_id: row.external_id,
-          posted_date: row.posted_date,
-          application_deadline: row.application_deadline,
-          is_active: row.is_active,
-          created_at: row.internship_created_at,
-          updated_at: row.internship_updated_at
+      return result.rows.map(row => {
+        const app: UserApplicationWithInternship = {
+          id: row.id,
+          user_id: row.user_id,
+          internship_id: row.internship_id,
+          application_status: row.application_status,
+          applied_date: row.applied_date,
+          last_updated: row.last_updated,
+          notes: row.notes,
+          reminder_date: row.reminder_date,
+          is_manual_entry: row.is_manual_entry,
+          manual_company_name: row.manual_company_name,
+          manual_position_title: row.manual_position_title,
+          manual_location: row.manual_location,
+          manual_application_url: row.manual_application_url,
+          manual_deadline: row.manual_deadline
         }
-      }))
+
+        if (!row.is_manual_entry && row.internship_id) {
+          app.internship = {
+            id: row.internship_id,
+            title: row.title,
+            company_name: row.company_name,
+            description: row.description,
+            location: row.location,
+            stipend: row.stipend,
+            duration_months: row.duration_months,
+            work_type: row.work_type,
+            required_skills: row.required_skills,
+            application_url: row.application_url,
+            source_website: row.source_website,
+            external_id: row.external_id,
+            posted_date: row.posted_date,
+            application_deadline: row.application_deadline,
+            is_active: row.is_active,
+            created_at: row.internship_created_at,
+            updated_at: row.internship_updated_at
+          }
+        }
+
+        return app
+      })
     } finally {
       client.release()
     }
@@ -290,14 +353,16 @@ export class UserApplicationModel {
       `
       const recentResult = await client.query(recentQuery, [userId])
       
-      // Upcoming deadlines
+      // Upcoming deadlines (for both platform and manual entries)
       const deadlineQuery = `
         SELECT COUNT(*) as count 
         FROM user_applications ua
-        JOIN internships i ON ua.internship_id = i.id
+        LEFT JOIN internships i ON ua.internship_id = i.id
         WHERE ua.user_id = $1 
-        AND i.application_deadline IS NOT NULL
-        AND i.application_deadline BETWEEN NOW() AND NOW() + INTERVAL '7 days'
+        AND (
+          (i.application_deadline IS NOT NULL AND i.application_deadline BETWEEN NOW() AND NOW() + INTERVAL '7 days')
+          OR (ua.manual_deadline IS NOT NULL AND ua.manual_deadline BETWEEN NOW() AND NOW() + INTERVAL '7 days')
+        )
         AND ua.application_status IN ('applied', 'under_review', 'interview_scheduled')
       `
       const deadlineResult = await client.query(deadlineQuery, [userId])

@@ -28,44 +28,61 @@ export class ReminderService {
    */
   private static async sendDeadlineReminder(application: UserApplicationWithInternship): Promise<void> {
     try {
-      const { internship } = application
+      // Get deadline and display info based on whether it's manual or platform entry
+      const deadline = application.is_manual_entry 
+        ? application.manual_deadline 
+        : application.internship?.application_deadline
       
-      if (!internship.application_deadline) {
+      if (!deadline) {
         return
       }
 
+      const title = application.is_manual_entry
+        ? application.manual_position_title || 'Position'
+        : application.internship?.title || 'Position'
+      
+      const company = application.is_manual_entry
+        ? application.manual_company_name || 'Company'
+        : application.internship?.company_name || 'Company'
+
       const daysUntilDeadline = Math.ceil(
-        (new Date(internship.application_deadline).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
+        (new Date(deadline).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
       )
 
-      let title: string
+      let notificationTitle: string
       let message: string
 
       if (daysUntilDeadline <= 1) {
-        title = 'Application Deadline Today!'
-        message = `The application deadline for ${internship.title} at ${internship.company_name} is today.`
+        notificationTitle = 'Application Deadline Today!'
+        message = `The application deadline for ${title} at ${company} is today.`
       } else if (daysUntilDeadline <= 3) {
-        title = 'Application Deadline Soon'
-        message = `The application deadline for ${internship.title} at ${internship.company_name} is in ${daysUntilDeadline} days.`
+        notificationTitle = 'Application Deadline Soon'
+        message = `The application deadline for ${title} at ${company} is in ${daysUntilDeadline} days.`
       } else {
-        title = 'Upcoming Application Deadline'
-        message = `The application deadline for ${internship.title} at ${internship.company_name} is in ${daysUntilDeadline} days.`
+        notificationTitle = 'Upcoming Application Deadline'
+        message = `The application deadline for ${title} at ${company} is in ${daysUntilDeadline} days.`
       }
 
       // Create notification
-      await UpdateNotificationModel.create({
+      const notificationData: any = {
         user_id: application.user_id,
-        internship_id: application.internship_id,
         notification_type: 'deadline_reminder',
-        title,
+        title: notificationTitle,
         message,
         delivery_method: 'websocket',
         metadata: {
           application_id: application.id,
           days_until_deadline: daysUntilDeadline,
-          deadline_date: internship.application_deadline
+          deadline_date: deadline,
+          is_manual_entry: application.is_manual_entry
         }
-      })
+      }
+      
+      if (application.internship_id) {
+        notificationData.internship_id = application.internship_id
+      }
+      
+      await UpdateNotificationModel.create(notificationData)
 
       console.log(`Sent deadline reminder for application ${application.id}`)
     } catch (error) {
@@ -100,17 +117,22 @@ export class ReminderService {
    */
   private static async sendCustomReminder(application: UserApplicationWithInternship): Promise<void> {
     try {
-      const { internship } = application
+      const positionTitle = application.is_manual_entry
+        ? application.manual_position_title || 'Position'
+        : application.internship?.title || 'Position'
+      
+      const companyName = application.is_manual_entry
+        ? application.manual_company_name || 'Company'
+        : application.internship?.company_name || 'Company'
       
       const title = 'Application Reminder'
       const message = application.notes 
-        ? `Reminder for ${internship.title} at ${internship.company_name}: ${application.notes}`
-        : `Reminder for your application to ${internship.title} at ${internship.company_name}`
+        ? `Reminder for ${positionTitle} at ${companyName}: ${application.notes}`
+        : `Reminder for your application to ${positionTitle} at ${companyName}`
 
       // Create notification
-      await UpdateNotificationModel.create({
+      const notificationData: any = {
         user_id: application.user_id,
-        internship_id: application.internship_id,
         notification_type: 'deadline_reminder',
         title,
         message,
@@ -118,9 +140,16 @@ export class ReminderService {
         metadata: {
           application_id: application.id,
           reminder_type: 'custom',
-          reminder_date: application.reminder_date
+          reminder_date: application.reminder_date,
+          is_manual_entry: application.is_manual_entry
         }
-      })
+      }
+      
+      if (application.internship_id) {
+        notificationData.internship_id = application.internship_id
+      }
+      
+      await UpdateNotificationModel.create(notificationData)
 
       console.log(`Sent custom reminder for application ${application.id}`)
     } catch (error) {

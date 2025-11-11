@@ -5,7 +5,6 @@ import {
   Typography,
   Button,
   Box,
-  Avatar,
   Menu,
   MenuItem,
   IconButton
@@ -23,11 +22,12 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import NotificationCenter from '../notifications/NotificationCenter'
 import ConnectionStatus from '../notifications/ConnectionStatus'
+// Logo is served from public folder
 
 export const Navigation: React.FC = () => {
   const navigate = useNavigate()
   const location = useLocation()
-  const { user, logout } = useAuth()
+  const { logout } = useAuth()
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null)
 
   const handleMenu = (event: React.MouseEvent<HTMLElement>) => {
@@ -51,11 +51,44 @@ export const Navigation: React.FC = () => {
   const isActive = (path: string) => location.pathname === path
 
   return (
-    <AppBar position="static" elevation={1}>
+    <AppBar position="static" elevation={1} sx={{ backgroundColor: '#000000' }}>
       <Toolbar>
-        <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-          Internship Aggregator
-        </Typography>
+        <Box 
+          sx={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: 1.5, 
+            flexGrow: 1,
+            cursor: 'pointer',
+            transition: 'all 0.3s ease',
+            '&:hover': {
+              transform: 'scale(1.02)'
+            }
+          }}
+          onClick={() => navigate('/dashboard')}
+        >
+          <img 
+            src="/logo.png" 
+            alt="CareerNest Logo" 
+            style={{ 
+              height: '80px', 
+              width: 'auto',
+              filter: 'drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2))'
+            }} 
+          />
+          <Typography 
+            variant="h5" 
+            component="div" 
+            sx={{ 
+              fontFamily: '"Poppins", "Roboto", "Helvetica", "Arial", sans-serif',
+              fontWeight: 700,
+              letterSpacing: '-0.5px',
+              textShadow: '0 2px 8px rgba(0, 0, 0, 0.2)'
+            }}
+          >
+            <span style={{ fontWeight: 700, color: '#4A90E2' }}>Career</span><span style={{ fontWeight: 800, color: '#7ED321' }}>Nest</span>
+          </Typography>
+        </Box>
         
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <Button
